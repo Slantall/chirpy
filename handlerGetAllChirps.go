@@ -10,7 +10,7 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	chirps, err := cfg.db.GetAllChirps(r.Context())
 	if err != nil {
 		log.Printf("Error retrieving chrips: %s", err)
-		respondWithError(w, "Failed to  chirps", 500)
+		respondWithError(w, "Failed to retrieve chirps", 500)
 	}
 	pulledChirps := []Chirps{}
 	for _, chirp := range chirps {

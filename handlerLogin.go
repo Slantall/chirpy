@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"main/internal/auth"
-	"main/internal/database"
 	"net/http"
 )
 
-func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
-
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	account := Account{}
 	err := decoder.Decode(&account)
@@ -18,23 +16,14 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, "Invalid request", 500)
 		return
 	}
-
-	hashedPass, err := auth.HashPassword(account.Password)
+	user, err := cfg.db.GetUserByEmail(r.Context(), account.Email)
 	if err != nil {
-		log.Printf("Error hashing password: %s", err)
-		respondWithError(w, "Failed to create account", 500)
+		respondWithError(w, "Incorrect email or password", 401)
 		return
 	}
-
-	userParams := database.CreateUserParams{
-		Email:          account.Email,
-		HashedPassword: hashedPass,
-	}
-
-	user, err := cfg.db.CreateUser(r.Context(), userParams)
+	err = auth.CheckPasswordHash(user.HashedPassword, account.Password)
 	if err != nil {
-		log.Printf("Error Creating User: %s", err)
-		respondWithError(w, "Invalid request", 500)
+		respondWithError(w, "Incorrect email or password", 401)
 		return
 	}
 
@@ -52,7 +41,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
+	w.WriteHeader(200)
 	w.Write(dat)
 
 }

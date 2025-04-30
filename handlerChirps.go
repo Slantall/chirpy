@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"main/internal/auth"
 	"main/internal/database"
 	"net/http"
 
@@ -21,6 +22,19 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
 		respondWithError(w, "Invalid request", 500)
+		return
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Couldn't retrieve token: %s", err)
+		respondWithError(w, "Unauthorized", 401)
+		return
+	}
+	userID, err := auth.ValidateJWT(token, cfg.jwtS)
+	if err != nil {
+		log.Printf("incorrect token: %s", err)
+		respondWithError(w, "Unauthorized", 401)
 		return
 	}
 
@@ -50,7 +64,7 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 	*/
 	chirpParams := database.CreateChirpParams{
 		Body:   filtered,
-		UserID: chrp.User_ID,
+		UserID: userID,
 	}
 	createChirp, err := cfg.db.CreateChirp(r.Context(), chirpParams)
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
-	account := Account{}
+	account := LoginAccount{}
 	err := decoder.Decode(&account)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)

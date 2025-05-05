@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"main/internal/auth"
+	"main/internal/database"
 	"net/http"
 	"time"
 )
@@ -27,10 +28,10 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, "Incorrect email or password", 401)
 		return
 	}
-	expires := time.Duration(account.Expires_in_seconds) * time.Second
-	if account.Expires_in_seconds <= 0 || account.Expires_in_seconds > 3600 {
-		expires = time.Duration(3600) * time.Second
-	}
+	//expires := time.Duration(account.Expires_in_seconds) * time.Second  //used if `expires_in_seconds` will be used
+	//if account.Expires_in_seconds <= 0 || account.Expires_in_seconds > 3600 {
+	expires := time.Duration(3600) * time.Second
+	//}
 
 	token, err := auth.MakeJWT(user.ID, cfg.jwtS, expires)
 	if err != nil {
@@ -38,13 +39,26 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, "Error creating token", 401)
 		return
 	}
+	refshtkn, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Printf("Error creating refresh token: %s", err)
+		respondWithError(w, "Error creating refresh token", 401)
+		return
+	}
+	err = cfg.db.StoreRefreshToken(r.Context(), database.StoreRefreshTokenParams{Token: refshtkn, UserID: user.ID})
+	if err != nil {
+		log.Printf("Error storing refresh token: %s", err)
+		respondWithError(w, "Error creating refresh token", 401)
+		return
+	}
 
 	respBody := User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: refshtkn,
 	}
 
 	dat, err := json.Marshal(respBody)

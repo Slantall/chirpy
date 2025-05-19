@@ -17,6 +17,7 @@ type apiConfig struct {
 	db             *database.Queries
 	plat           string
 	jwtS           string
+	polkaKey       string
 }
 
 func main() {
@@ -35,9 +36,10 @@ func main() {
 	const port = "8080"
 
 	apiCfg := apiConfig{
-		db:   dbQueries,
-		plat: os.Getenv("PLATFORM"),
-		jwtS: os.Getenv("SECRET"),
+		db:       dbQueries,
+		plat:     os.Getenv("PLATFORM"),
+		jwtS:     os.Getenv("SECRET"),
+		polkaKey: os.Getenv("POLKA_KEY"),
 	}
 
 	mux := http.NewServeMux()
@@ -54,10 +56,12 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsers)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.polkaWebhook)
 	//start server
 	err = server.ListenAndServe()
 	if err != nil {
